@@ -1,0 +1,332 @@
+#include <iostream>
+#include <string>
+#include <windows.h>
+using namespace std;
+class Exception :public exception
+{
+	string _text;
+	int _line;
+	string _file;
+	string _time;
+public:
+	Exception(string text = "Null Error", int line = 0, string time = "", string file = "")
+	{
+		this->_text = text;
+		this->_line = line;
+		this->_time = time;
+		this->_file = file;
+
+		_text =
+			"Message: " + _text +
+			"\nFile: " + _file +
+			"\nTime: " + _time +
+			"\nLine: " + to_string(_line);
+	}
+
+	char const* what() const override
+	{
+		return _text.c_str();
+	}
+	string GetText() { return _text; }
+};
+class DatabaseException :public Exception
+{
+	string _text;
+public:
+	DatabaseException(string text = "Null Error", int line = 0, string time = "", string file = "", string location = "")
+	{
+		_text = "Message: " + text + "\nFile: " + file + "\nTime: " + time + "\nLine: " + to_string(line) + "\nDatabase Location: " + location;
+	}
+
+	char const* what()const override
+	{
+		return _text.c_str();
+	}
+	string GetText() { return _text; }
+};
+class InvalidArgumentException :public Exception
+{
+	string _text;
+public:
+	InvalidArgumentException(string text = "Null Error", int line = 0, string time = "", string file = "", string location = "")
+	{
+		_text = "Message: " + text + "\nFile: " + file + "\nTime: " + time + "\nLine: " + to_string(line) + "\nInvalid Argument Location: " + location;
+	}
+
+	char const* what()const override
+	{
+		return _text.c_str();
+	}
+	string GetText() { return _text; }
+};
+
+
+
+class User {
+	string username;
+	string password;
+	string name;
+	string surname;
+
+public:
+	User()
+	{
+	}
+	User(string username, string password, string name, string surname)
+	{
+		SetUsername(username);
+		SetPassword(password);
+		SetName(name);
+		SetSurname(surname);
+	}
+	User(const User& other)
+	{
+		this->SetUsername(other.username);
+		this->SetName(other.name);
+		this->SetSurname(other.surname);
+		this->SetPassword(other.password);
+	}
+	User& operator=(const User& other)
+	{
+		this->SetUsername(other.username);
+		this->SetName(other.name);
+		this->SetSurname(other.surname);
+		this->SetPassword(other.password);
+		return *this;
+	}
+
+	string GetUsername() const { return username; }
+	string GetPassword() const { return password; }
+	string GetName() const { return name; }
+	string GetSurname() const { return surname; }
+
+	void SetUsername(string username)
+	{
+		if (username.length() < 6 || username[0] < 65 && username[0] > 92)
+			throw InvalidArgumentException("Invalid Length", __LINE__, "12:00", __FILE__, "Baki");
+		this->username = username;
+	}
+	void SetPassword(string password)
+	{
+		if (password.length() < 6)
+			throw InvalidArgumentException("Invalid Password", __LINE__, "12:00", __FILE__, "Baki");
+		this->password = password;
+	}
+	void SetName(string name)
+	{
+		if (name.length() < 4)
+			throw InvalidArgumentException("Invalid Length", __LINE__, "12:00", __FILE__, "Baki");
+		this->name = name;
+	}
+	void SetSurname(string surname)
+	{
+		if (surname.length() < 4)
+			throw InvalidArgumentException("Invalid Username", __LINE__, "12:00", __FILE__, "Baki");
+		this->surname = surname;
+	}
+	void show() const
+	{
+
+		if (username == "")
+			throw Exception("Username is NULL", __LINE__, "12:00", __FILE__);
+		if (password == "")
+			throw Exception("Password is NULL", __LINE__, "12:00", __FILE__);
+		if (name == "")
+			throw Exception("Name is NULL", __LINE__, "12:00", __FILE__);
+		if (surname == "")
+			throw Exception("surname is NULL", __LINE__, "12:00", __FILE__);
+		cout << endl;
+		cout << "Username: " << username << endl;
+		cout << "Password: " << password << endl;
+		cout << "Name: " << name << endl;
+		cout << "Surname: " << surname << endl;
+	}
+};
+
+class Database {
+	User** users;
+	int user_count = 0;
+public:
+
+	void addUser(const User& user)
+	{
+		if (user_count == 0)
+		{
+			users = new User * [++user_count];
+			users[0] = new User(user);
+		}
+		else
+		{
+			User** NewUsers = new User * [user_count + 1];
+			for (size_t i = 0; i < user_count; i++)
+			{
+				NewUsers[i] = users[i];
+			}
+			NewUsers[user_count] = new User(user);
+
+			delete[] users;
+			users = NewUsers;
+			user_count++;
+		}
+	}
+	User& getUserByUsername(string username)
+	{
+		for (size_t i = 0; i < user_count; i++)
+		{
+			if (users[i]->GetUsername() == username)
+			{
+				return *users[i];
+			}
+		}
+		assert(!"Tapilmadi");
+	}
+	void updateUser(User& olduser, const User& newuser)
+	{
+		for (size_t i = 0; i < user_count; i++)
+		{
+			if (users[i]->GetUsername() == olduser.GetUsername())
+			{
+				*users[i] = newuser;
+				return;
+			}
+		}
+		assert(!"Tapilmadi");
+	}
+
+	User** GetUsers() { return users; }
+	int GetUserCount() { return user_count; }
+};
+
+class Registration {
+	Database _database;
+public:
+	Registration(const Database& database) {
+		_database = database;
+	}
+
+
+	void signIn(string username, string password)
+	{
+		bool IsCheck = false;
+		for (size_t i = 0; i < _database.GetUserCount(); i++)
+		{
+			if (_database.GetUsers()[i]->GetUsername() == username)
+			{
+				if (_database.GetUsers()[i]->GetPassword() == password)
+				{
+					cout << "Access Succesfull" << endl;
+
+				}
+				else
+					throw InvalidArgumentException("Password is not found", __LINE__, "12:00", __FILE__, "Baki");
+			}
+			else
+				throw InvalidArgumentException("Username is not found", __LINE__, "12:00", __FILE__, "Baki");
+		}
+	}
+
+
+	void signUp(string username, string password, string name, string surname)
+	{
+		for (size_t i = 0; i < _database.GetUserCount(); i++)
+		{
+			if (_database.GetUsers()[i]->GetUsername() == username)
+				throw DatabaseException("Users have already username like this", __LINE__, "12:00", __FILE__, "Baki");
+		}
+		User test(username, password, name, surname);
+		_database.addUser(test);
+	}
+
+	void allusers()
+	{
+		for (size_t i = 0; i < _database.GetUserCount(); i++)
+		{
+			_database.GetUsers()[i]->show();
+		}
+	}
+};
+
+class System {
+public:
+	static void Control() {
+		Database db;
+		Registration twitter(db);
+
+
+		int secim;
+		while (true)
+		{
+			cout << "Secim: ";
+			cin >> secim;
+			cin.ignore();
+
+			if (secim == 1)
+			{
+				try
+				{
+					twitter.allusers();
+				}
+				catch (Exception ex)
+				{
+					cout << "None" << ex.what() << endl;
+				}
+
+			}
+			else if (secim == 2)
+			{
+				string username;
+				string password;
+				cout << "Username: ";
+				getline(cin, username);
+				cout << "Password: ";
+				getline(cin, password);
+				try
+				{
+					twitter.signIn(username, password);
+				}
+				catch (InvalidArgumentException ex)
+				{
+					cout << ex.what() << endl;
+				}
+			}
+			else if (secim == 3)
+			{
+				string username;
+				string password;
+				string name;
+				string surname;
+				cout << "Username: ";
+				getline(cin, username);
+				cout << "Password: ";
+				getline(cin, password);
+				cout << "Name: ";
+				getline(cin, name);
+				cout << "Surname: ";
+				getline(cin, surname);
+				try
+				{
+					twitter.signUp(username, password, name, surname);
+				}
+				catch (DatabaseException ex)
+				{
+					cout << ex.what() << endl;
+				}
+
+			}
+
+			else if (secim == 0)
+			{
+				cout << "E" << endl;
+				break;
+			}
+			else
+				cout << "A" << endl;
+		}
+	}
+
+};
+
+int main() {
+	System::Control();
+	system("pause");
+}
